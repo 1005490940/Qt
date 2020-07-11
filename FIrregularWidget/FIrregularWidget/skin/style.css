@@ -1,0 +1,9 @@
+QWidget#widgetBackground
+{
+  min-height:500px;
+  max-height:500px;
+  min-width:500px;
+  max-width:500px;
+  background:transparent;
+ border-image:url(skin/test.png);
+}
