@@ -48,7 +48,9 @@ protected slots ://UI ²Ûº¯Êý
 	void onSendMessageToSocket(bool);
 	void onSystemQuit(bool);
 	void onReceiveToFile(bool);
+	void onSkinChange(bool);
 private:
+	QString getSkinFilePathBySkinAction(QAction *skinAction);
 	void outPutWarnningIntof(const std::wstring &msg);
 	void setUpConfigInfoByUi();
 	void setUpUiByConfigInfo();
@@ -78,10 +80,11 @@ private:
 	unsigned long long _sizeRecv;
 	unsigned long long _sizeSend;
 private://Æ¤·ôÏà¹Ø
-	QMap<QSharedPointer<QAction>, QString> _skinAction2SkinFileName;
+	QMap<QAction*, QString> _skinAction2SkinFileName;
 	QSharedPointer<QAction> _acitonSkinBlack;
 	QSharedPointer<QAction> _acitonSkinGreen;
 	QSharedPointer<QAction> _acitonSkinRed;
 	QSharedPointer<QMenu>  _menuSkin;
-	QSharedPointer<QMenu>  _actionSkin;
+	QSharedPointer<QAction>  _actionSkin;
+	QAction *_actionCurrentSkin;
 };

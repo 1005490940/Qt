@@ -18,6 +18,7 @@ FNetworkDebuggingAssistant::FNetworkDebuggingAssistant(QWidget *parent)
 	, _isBulidSocket(false)
 	, _sizeSend(0)
 	, _sizeRecv(0)
+	,_actionCurrentSkin(nullptr)
 {
 	ui.setupUi(this);
 	initUi();
@@ -320,6 +321,35 @@ void FNetworkDebuggingAssistant::onReceiveToFile(bool)
 	_configInfo->setSaveFilePath(fileName);
 }
 
+void FNetworkDebuggingAssistant::onSkinChange(bool)
+{
+	QAction * skinAction = dynamic_cast<QAction*>(sender());
+	if (skinAction == nullptr)
+	{
+		return;
+	}
+	if (_actionCurrentSkin == skinAction)
+	{
+		return;//已经为当前皮肤 不用切换
+	}
+	
+	QString &&skinFilePath = getSkinFilePathBySkinAction(skinAction);
+	this->setStyleSheet(skinFilePath);
+	_actionCurrentSkin = skinAction;
+}
+
+QString FNetworkDebuggingAssistant::getSkinFilePathBySkinAction(QAction *skinAction)
+{
+	auto iter = _skinAction2SkinFileName.find(skinAction);
+	if (iter == _skinAction2SkinFileName.end())
+	{
+		//没有找到，继续使用当前皮肤
+		// _skinAction2SkinFileName.value(_acitonSkinBlack.data());
+		return _skinAction2SkinFileName.value(_actionCurrentSkin);//此处可能为空
+	}
+	return iter.value();
+}
+
 void FNetworkDebuggingAssistant::outPutWarnningIntof(const std::wstring &msg)
 {
 	auto textColor = ui.textEditOutPut->textColor();
@@ -582,6 +612,29 @@ bool FNetworkDebuggingAssistant::createTCPServerSocket(const FInfoConfig *config
 
 void FNetworkDebuggingAssistant::initSkin()
 {
-
+	//QMap<QSharedPointer<QAction>, QString> _skinAction2SkinFileName;
+	 _acitonSkinBlack = QSharedPointer<QAction>::create(this);
+	 _acitonSkinBlack->setText(W2Q(L"黑色"));
+	 _acitonSkinGreen = QSharedPointer<QAction>::create(this);
+	 _acitonSkinGreen->setText(W2Q(L"绿色"));
+	 _acitonSkinRed = QSharedPointer<QAction>::create(this);
+	 _acitonSkinRed->setText(W2Q(L"红色"));
+	 _menuSkin = QSharedPointer<QMenu>::create(this);
+	 _actionSkin = QSharedPointer<QAction>::create(this);
+	 _menuSkin->addAction(_acitonSkinBlack.data());
+	 _menuSkin->addAction(_acitonSkinGreen.data());
+	 _menuSkin->addAction(_acitonSkinRed.data());
+	 _actionSkin = QSharedPointer<QAction>::create(this);
+	 _actionSkin->setText(W2Q(L"皮肤"));
+	 _sysMenu->addAction(_actionSkin.data());
+	 _actionSkin->setMenu(_menuSkin.data());
+	 _skinAction2SkinFileName.insert(_acitonSkinBlack.data(), W2Q(L"data/skin/black/black.css"));
+	 _skinAction2SkinFileName.insert(_acitonSkinGreen.data(), W2Q(L"data/skin/green/green.css"));
+	 _skinAction2SkinFileName.insert(_acitonSkinRed.data(), W2Q(L"data/skin/red/red.css"));
+	 connect(_acitonSkinBlack.data(), &QAction::triggered, this, &FNetworkDebuggingAssistant::onSkinChange);
+	 connect(_acitonSkinGreen.data(), &QAction::triggered, this, &FNetworkDebuggingAssistant::onSkinChange);
+	 connect(_acitonSkinRed.data(), &QAction::triggered, this, &FNetworkDebuggingAssistant::onSkinChange);
+	 this->setStyleSheet(getSkinFilePathBySkinAction(_acitonSkinBlack.data()));//初始化为黑色皮肤
+	 _actionCurrentSkin = _acitonSkinBlack.data();
 }
 
