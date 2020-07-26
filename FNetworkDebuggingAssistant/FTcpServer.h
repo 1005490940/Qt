@@ -11,7 +11,7 @@ class FTcpServer : public FBaseSocket
 { 
 	Q_OBJECT
 public:
-	FTcpServer(QObject *parent);
+	FTcpServer(QObject *parent = Q_NULLPTR);
 	~FTcpServer();
 private:
 	void setUpConnection();
@@ -27,6 +27,7 @@ private slots:
 protected:
 	virtual bool start() override;
 	virtual bool stop() override;
+	virtual QString getSocketIpAddress(const QAbstractSocket *socket) override;
 public slots:
 	virtual void onSocketSend(const QString &msg) override;
 private:

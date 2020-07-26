@@ -339,7 +339,7 @@
                 <widget class="QComboBox" name="comboBoxConnectionObject">
                  <item>
                   <property name="text">
-                   <string>AllConnections</string>
+                   <string>All Connections</string>
                   </property>
                  </item>
                 </widget>

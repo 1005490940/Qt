@@ -4,6 +4,7 @@
 #include "ui_FNetworkDebuggingAssistant.h"
 #include <QSharedPointer>
 #include <QMenu>
+#include <QMap>
 #include <QAction>
 #include <QThread>//socket线程
 #include <QSystemTrayIcon>
@@ -24,6 +25,7 @@ protected:
 	bool loadConfigInfoFromXml(const QString &xmlPth);
 	bool saveConfigInfoToXml(const QString &xmlPth);
 	void initNetInfo();
+	void saveReceiveArea();
 private:
 	void setUpConnection();
 	void initUi();
@@ -31,6 +33,8 @@ private:
 	void initTrayMenu();
 protected slots: //socket槽函数  //在主界面过滤
     void onReceiveMessage(const QString &msg);
+	void onNewConnection(const QString &ipAddress);
+	void onDisConnection(const QString &ipAddress);
 signals:
     void toSendMessage(const QString &msg); 
 protected slots ://UI 槽函数 
@@ -43,6 +47,7 @@ protected slots ://UI 槽函数
 	void onResetCount(bool);
 	void onSendMessageToSocket(bool);
 	void onSystemQuit(bool);
+	void onReceiveToFile(bool);
 private:
 	void outPutWarnningIntof(const std::wstring &msg);
 	void setUpConfigInfoByUi();
@@ -58,6 +63,7 @@ private:
 	bool createUDPSocket(const FInfoConfig *configInfo);
 	bool createTCPClientSocket(const FInfoConfig *configInfo);
 	bool createTCPServerSocket(const FInfoConfig *configInfo);
+	void initSkin();
 private:
 	Ui::FNetworkDebuggingAssistantClass ui;
 	QSharedPointer<FInfoConfig> _configInfo;
@@ -67,9 +73,15 @@ private:
 	QSharedPointer<QAction> _actionQuit;
 	QSharedPointer<QAction> _actionConnect;
 	FBaseSocket* _socketBase;//socket基类
-
 	QThread* _threadSocket;
 	bool _isBulidSocket;
 	unsigned long long _sizeRecv;
 	unsigned long long _sizeSend;
+private://皮肤相关
+	QMap<QSharedPointer<QAction>, QString> _skinAction2SkinFileName;
+	QSharedPointer<QAction> _acitonSkinBlack;
+	QSharedPointer<QAction> _acitonSkinGreen;
+	QSharedPointer<QAction> _acitonSkinRed;
+	QSharedPointer<QMenu>  _menuSkin;
+	QSharedPointer<QMenu>  _actionSkin;
 };

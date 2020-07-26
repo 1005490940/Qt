@@ -15,12 +15,14 @@ public:
 	~FInfoConfig();
 	void setProtocolType(int type);
 	int getProtocolType()const;
-	void setIpAddress(const QString & ip);
+	void setIpAddress(const QString &ip);
 	QString getIpAddress()const;
 	void setPort(unsigned int port);
 	unsigned int getPort()const;
 	void setSaveToFileFlag(bool val);
 	bool getSaveToFileFlag()const;
+	void setSaveFilePath(const QString &filePath);
+	const QString &getSaveFilePath()const;
 	void setShowRecvTimeFlag(bool val);
 	bool getShowRecvTimeFlag()const;
 	void setShow0xFlag(bool val);
@@ -56,4 +58,5 @@ private:
 	bool _isSendLoop;
 	unsigned int _sendPauseTime;
 	ProtocolType _ptcType;
+    QString _saveFilePath;
 };

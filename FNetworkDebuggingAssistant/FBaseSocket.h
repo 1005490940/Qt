@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QAbstractSocket>
+#include "FInfoConfig.h"
 class FBaseSocket : public QObject
 {
 	Q_OBJECT
@@ -23,17 +24,20 @@ public:
 	void setReceiverPort(unsigned int rPort);
 	bool tryToStart();
 	bool tryToStop();
+	void setConfigInfoManager(const FInfoConfig *config);
 protected:
 	virtual bool start() = 0;
 	virtual bool stop() = 0;
-
+	virtual QString getSocketIpAddress(const QAbstractSocket *socket) = 0;
+	QString getCurrentDataTime()const;
 signals:
-	void sigSocketNewConnection(const QString &ip);
 	void stgSocketDisConnection(const QString &ip);
 	void sigSocketError(const QString &msg);
 //UIÀ˘”√–≈∫≈
 	void sigSocketSend(const QString &msg);
 	void sigSocketReceive(const QString &msg);
+	void sigNewConnection(const QString &socketIp);
+
 public slots:
 	virtual void onSocketSend(const QString &msg) = 0;
 protected slots :
@@ -49,4 +53,5 @@ protected:
 	QString _receiverIpAddress;
 	unsigned int _receiverPort;
 	SendMode _curMode;
+	const FInfoConfig *_configInfo;
 };

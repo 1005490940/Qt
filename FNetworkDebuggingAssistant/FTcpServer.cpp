@@ -51,13 +51,14 @@ void FTcpServer::onSocketRecvNewConnection()
 	connect(socketClient.data(), &QTcpSocket::disconnected, this, &FTcpServer::onSocketDisconnected);
 	connect(socketClient.data(), &QTcpSocket::stateChanged, this, &FTcpServer::onSocketStateChanged);
 	connect(socketClient.data(), &QTcpSocket::readyRead, this, &FTcpServer::onSocketReadReady);
-	connect(socketClient.data(), SIGNAL(error(QAbstractSocket::SocketError socketError))
-		, this, SLOT(onSocketError(QAbstractSocket::SocketError socketError)));
+	connect(socketClient.data(), SIGNAL(error(QAbstractSocket::SocketError))
+		, this, SLOT(onSocketError(QAbstractSocket::SocketError)));
 	//获取IP地址 
-	QString strIP = tr("%1").arg(socketClient->peerAddress().toString().split("::ffff:")[1]);
+	auto clientInfo = socketClient->peerAddress().toString().split("::ffff:");
+	QString strIP = tr("%1").arg(clientInfo.at(0));
 	//插入maP 通知主界面刷新
 	_ipAddress2ClientSocket.insert(strIP, socketClient);
-	emit sigSocketNewConnection(strIP);//主界面通知
+	emit sigNewConnection(strIP);//主界面通知
 }
 /*客户端连接*/
 void FTcpServer::onSocketConnected()
@@ -73,9 +74,9 @@ void FTcpServer::onSocketDisconnected()
 		qWarning() << "client socket is null";
 		return;
 	}
-	QString strIP = tr("%1").arg(socketClient->peerAddress().toString().split("::ffff:")[1]);
+	QString strIP = tr("%1").arg(socketClient->peerAddress().toString().split("::ffff:")[0]);
 	_ipAddress2ClientSocket.remove(strIP);
-//	emit stgSocketDisConnection(strIP);//IP断开
+	emit stgSocketDisConnection(strIP);//IP断开
 }
 /*客户端出错*/
 void FTcpServer::onSocketError(QAbstractSocket::SocketError socketError)
@@ -90,7 +91,15 @@ void FTcpServer::onSocketStateChanged(QAbstractSocket::SocketState socketState)
 /*读取客户端发送过来的数据*/
 void FTcpServer::onSocketReadReady()
 {
-
+	auto tcpClient = dynamic_cast<QTcpSocket*>(sender());
+	if (tcpClient)
+	{
+		QByteArray &&data = tcpClient->readAll();
+		QString &&clientIP = getSocketIpAddress(tcpClient);
+		QString &&timeInfo = (_configInfo->getShowRecvTimeFlag()? getCurrentDataTime() : QString());
+		QString &&msg = QString("【%1 %2】%3").arg(clientIP).arg(timeInfo).arg(QString(data));
+		emit sigSocketReceive(msg);
+	}
 }
 
 bool FTcpServer::start()
@@ -109,11 +118,36 @@ bool FTcpServer::stop()
 	return true;
 }
 
+QString FTcpServer::getSocketIpAddress(const QAbstractSocket *socket)
+{
+	if (socket == nullptr)
+	{
+		return QString();
+	}
+	return socket->peerAddress().toString();
+}
+
 void FTcpServer::onSocketSend(const QString &msg)
 {
-	if (msg.isEmpty())
+	auto recvClientIp = getReceiverIpAddress();
+	if (recvClientIp.isEmpty())
 	{
-
+		for ( auto iter = _ipAddress2ClientSocket.begin();iter!= _ipAddress2ClientSocket.end();++iter)
+		{
+			auto tcpClient = iter.value();
+			if (tcpClient)
+			{
+				tcpClient->write(msg.toUtf8());
+			}
+		}
+	}
+	else
+	{
+		auto recvClient = getClientSocketByClientIpAddress(recvClientIp);
+		if (recvClient)
+		{
+			recvClient->write(msg.toUtf8());
+		}
 	}
 }
 

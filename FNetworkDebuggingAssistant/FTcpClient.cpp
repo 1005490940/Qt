@@ -12,11 +12,8 @@ FTcpClient::~FTcpClient()
 
 bool FTcpClient::start()
 {
-//	m_Client->connectToHost(*add, 8080);
 	_socketClient = new QTcpSocket(this);
 	_socketClient->connectToHost(QHostAddress(getIpAddress()),getPort());//已在UI层做过滤 所以此处省略判断
-
-//	
 	setUpConnection();
 	return true;
 }
@@ -24,6 +21,11 @@ bool FTcpClient::start()
 bool FTcpClient::stop()
 {
 	return true;
+}
+
+QString FTcpClient::getSocketIpAddress(const QAbstractSocket *socket)
+{
+	return getIpAddress();
 }
 
 void FTcpClient::onSocketSend(const QString &msg)
@@ -64,8 +66,11 @@ void FTcpClient::onSocketReadReady()
 {
 	if (_socketClient)
 	{
-		QByteArray data = _socketClient->readAll();
-		emit sigSocketReceive(QString(data));
+		QByteArray &&data = _socketClient->readAll();
+		QString &&clientIP = getSocketIpAddress(_socketClient);
+		QString &&timeInfo = (_configInfo->getShowRecvTimeFlag() ? getCurrentDataTime() : QString());
+		QString &&msg = QString("【%1 %2】%3").arg(clientIP).arg(timeInfo).arg(QString(data));
+		emit sigSocketReceive(msg);
 	}
 }
 
@@ -85,6 +90,6 @@ void FTcpClient::disConnection()
 	disconnect(_socketClient, &QTcpSocket::disconnected, this, &FTcpClient::onSocketDisconnected);
 	disconnect(_socketClient, &QTcpSocket::stateChanged, this, &FTcpClient::onSocketStateChanged);
 	disconnect(_socketClient, &QTcpSocket::readyRead, this, &FTcpClient::onSocketReadReady);
-	disconnect(_socketClient, SIGNAL(error(QAbstractSocket::SocketError socketError))
-		, this, SLOT(onSocketError(QAbstractSocket::SocketError socketError)));
+	disconnect(_socketClient, SIGNAL(error(QAbstractSocket::SocketError))
+		, this, SLOT(onSocketError(QAbstractSocket::SocketError)));
 }

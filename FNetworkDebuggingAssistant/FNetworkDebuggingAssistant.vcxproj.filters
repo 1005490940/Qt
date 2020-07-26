@@ -50,6 +50,9 @@
     <Filter Include="XML">
       <UniqueIdentifier>{4e979b5f-ff19-450d-bf21-de3cb8a56cde}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FileSocket">
+      <UniqueIdentifier>{dbd0ef70-01cc-4d88-8bbc-75ae42a0bc31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -104,7 +107,16 @@
       <Filter>UdpSocket</Filter>
     </ClCompile>
     <ClCompile Include="FTcpClient.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>TcpClient</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_FFileSocket.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_FFileSocket.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="FFileSocket.cpp">
+      <Filter>FileSocket</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -132,6 +144,9 @@
     <CustomBuild Include="FUdpServerAndClient.h">
       <Filter>UdpSocket</Filter>
     </CustomBuild>
+    <CustomBuild Include="FFileSocket.h">
+      <Filter>FileSocket</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_FNetworkDebuggingAssistant.h">
@@ -141,7 +156,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FTcpClient.h">
-      <Filter>Header Files</Filter>
+      <Filter>TcpClient</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -6,17 +6,10 @@ class FTcpClient : public FBaseSocket
 public:
 	FTcpClient();
 	~FTcpClient();
-	/*
-	void sigSocketNewConnection(const QString &ip);
-	void stgSocketDisConnection(const QString &ip);
-	void sigSocketError(const QString &msg);
-	//UIÀ˘”√–≈∫≈
-	void sigSocketSend(const QString &msg);//
-	void sigSocketReceive(const QString &msg);
-	*/
 protected:
 	virtual bool start() override;
 	virtual bool stop() override;
+	virtual QString getSocketIpAddress(const QAbstractSocket *socket) override;
 public slots:
 	virtual void onSocketSend(const QString &msg) override;
 protected slots :

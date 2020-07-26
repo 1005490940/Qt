@@ -13,6 +13,7 @@ public:
 protected:
 	virtual bool start() override;
 	virtual bool stop() override;
+	virtual QString getSocketIpAddress(const QAbstractSocket *socket) override;
 public slots:
 	virtual void onSocketSend(const QString &msg) override;
 protected slots :

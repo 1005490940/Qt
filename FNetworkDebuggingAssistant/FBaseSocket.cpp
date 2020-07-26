@@ -1,5 +1,6 @@
 #include "FBaseSocket.h"
-
+#include <QHostAddress>
+#include <QDateTime>
 FBaseSocket::FBaseSocket(QObject *parent )
 	: QObject(parent)
 	, _port(8080)
@@ -61,5 +62,20 @@ bool FBaseSocket::tryToStart()
 bool FBaseSocket::tryToStop()
 {
 	return stop();
+}
+
+void FBaseSocket::setConfigInfoManager(const FInfoConfig *config)
+{
+	if (config == nullptr)
+	{
+		return;
+	}
+	_configInfo = config;
+}
+
+
+QString FBaseSocket::getCurrentDataTime() const
+{
+	return QDateTime::currentDateTime().toString();
 }
 

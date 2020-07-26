@@ -14,6 +14,7 @@ FInfoConfig::FInfoConfig()
 	, _isSendLoop(false)
 	, _sendPauseTime(1000)
 	, _ptcType(ProtocolType::UDP)
+	,_saveFilePath(QString())
 {
 }
 
@@ -42,7 +43,7 @@ FInfoConfig::ProtocolType FInfoConfig::getType() const
 	return _ptcType;
 }
 
-void FInfoConfig::setIpAddress(const QString & ip)
+void FInfoConfig::setIpAddress(const QString &ip)
 {
 	_ipAddress = ip;//std::move
 }
@@ -71,6 +72,16 @@ void FInfoConfig::setSaveToFileFlag(bool val)
 bool FInfoConfig::getSaveToFileFlag() const
 {
 	return _isRecvSaveToFile;
+}
+
+void FInfoConfig::setSaveFilePath(const QString &filePath)
+{
+	_saveFilePath = filePath;
+}
+
+const QString & FInfoConfig::getSaveFilePath() const
+{
+	return _saveFilePath;
 }
 
 void FInfoConfig::setShowRecvTimeFlag(bool val)

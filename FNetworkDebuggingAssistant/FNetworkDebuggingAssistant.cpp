@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QFile>
+#include <QSignalBlocker>
 #include "FQStringUtil.h"
 #include "FUdpServerAndClient.h"
 #include "FTcpClient.h"
@@ -24,6 +25,7 @@ FNetworkDebuggingAssistant::FNetworkDebuggingAssistant(QWidget *parent)
 	initNetInfo();
 	_configInfo = QSharedPointer<FInfoConfig>(new FInfoConfig);
 	ui.lineEditPort->setText(QString("%1").arg(_configInfo->getPort()));
+	initSkin();
 }
 
 FNetworkDebuggingAssistant::~FNetworkDebuggingAssistant()
@@ -77,14 +79,31 @@ void FNetworkDebuggingAssistant::initNetInfo()
 	}
 }
 
+void FNetworkDebuggingAssistant::saveReceiveArea()
+{
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+		"",
+		tr("All Files (*.*) Text File(*.txt) Data File(*."));
+	if (fileName.isEmpty())
+	{
+		return;
+	}
+	QFile saveFile(fileName);
+	saveFile.open(QIODevice::WriteOnly | QIODevice::Text);
+	if (saveFile.isOpen())
+	{
+		QString &&receiveText = ui.textEditOutPut->toPlainText();
+		QTextStream outStream(&saveFile);
+		outStream << receiveText;
+		saveFile.close();
+	}
+}
+
 void FNetworkDebuggingAssistant::setUpConnection()
 {
 	connect(ui.pushButtonConnect, &QPushButton::clicked, this, &FNetworkDebuggingAssistant::onBuildSocket);
 	connect(ui.comboBoxType, SIGNAL(currentIndexChanged(int)), this, SLOT(onProtocolTypeIndexChanged(int)));
-	connect(ui.checkBoxFile, &QCheckBox::clicked, this, [=](bool)
-	{
-		_configInfo->setSaveToFileFlag(ui.checkBoxFile->isChecked());
-	});
+	connect(ui.checkBoxFile, &QCheckBox::clicked, this, &FNetworkDebuggingAssistant::onReceiveToFile);
 	connect(ui.checkBoxTime, &QCheckBox::clicked, this, [=](bool)
 	{
 		_configInfo->setShowRecvTimeFlag(ui.checkBoxTime->isChecked());
@@ -193,17 +212,7 @@ void FNetworkDebuggingAssistant::onBuildSocket(bool)
 
 void FNetworkDebuggingAssistant::onSaveRecvDataAsFile(bool)
 {
-	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
-		"", tr("TxtFiles (*.txt);;DataFiles(*.dat);;AllFiles(*.*)"));
-	if (fileName.isEmpty())
-	{
-		return;
-	}
-	QString fileData = ui.textEditOutPut->toPlainText();
-	QFile file(fileName);
-	file.open(QIODevice::WriteOnly | QIODevice::Text);
-	file.write(fileData.toUtf8());
-	file.close();
+	saveReceiveArea();
 }
 
 void FNetworkDebuggingAssistant::onClearAllRecvData(bool)
@@ -222,8 +231,8 @@ void FNetworkDebuggingAssistant::onLoadingFile(bool)
 	}
 	QFile file(fileName);
 	file.open(QIODevice::ReadOnly);
-	QByteArray t = file.readAll();
-	ui.textEdit->setText(QString(t));
+	QByteArray &&byteArray = file.readAll();
+	ui.textEdit->setText(QString(byteArray));
 	file.close();
 }
 
@@ -271,10 +280,44 @@ void FNetworkDebuggingAssistant::onReceiveMessage(const QString &msg)
 	updateRecvSize(_sizeRecv);
 }
 
+void FNetworkDebuggingAssistant::onNewConnection(const QString &ipAddress)
+{
+	ui.comboBoxConnectionObject->addItem(ipAddress);
+}
+
+void FNetworkDebuggingAssistant::onDisConnection(const QString &ipAddress)
+{
+	auto itemCount = ui.comboBoxConnectionObject->count();
+	for (int i = 0;i<itemCount;++i)
+	{
+		auto itemText = ui.comboBoxConnectionObject->itemText(i);
+		if (itemText == ipAddress)
+		{
+			ui.comboBoxConnectionObject->removeItem(i);
+			return;
+		}
+	}
+}
+
 /*资源释放*/
 void FNetworkDebuggingAssistant::onSystemQuit(bool)
 {
+	destoryResources();
 	qApp->quit();
+}
+
+void FNetworkDebuggingAssistant::onReceiveToFile(bool)
+{
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+		"",
+		tr("All Files (*.*) Text File(*.txt) Data File(*."));
+	if (fileName.isEmpty())
+	{
+		QSignalBlocker blocker(ui.checkBoxFile);
+		ui.checkBoxFile->setChecked(false);//上面阻塞，不然会再次出发此信号 会引起递归
+		return;
+	}
+	_configInfo->setSaveFilePath(fileName);
 }
 
 void FNetworkDebuggingAssistant::outPutWarnningIntof(const std::wstring &msg)
@@ -403,12 +446,16 @@ void FNetworkDebuggingAssistant::destoryResources()
 		_socketBase->deleteLater();//会在一次事件循环完成只会再删除内存  也会调用 delete来释放内存
 		disconnect(_socketBase, &FBaseSocket::sigSocketReceive, this, &FNetworkDebuggingAssistant::onReceiveMessage);
 		disconnect(this, &FNetworkDebuggingAssistant::toSendMessage, _socketBase, &FBaseSocket::onSocketSend);
+		disconnect(_socketBase, &FBaseSocket::sigNewConnection, this, &FNetworkDebuggingAssistant::onNewConnection);
+		disconnect(_socketBase, &FBaseSocket::stgSocketDisConnection, this, &FNetworkDebuggingAssistant::onNewConnection);
+		
 		_socketBase = nullptr;
 	}
-
 	if (_threadSocket)
 	{
+		
 		_threadSocket->quit();
+		_threadSocket->wait();
 		//_threadSocket->exit();
 		_threadSocket->deleteLater();
 		_threadSocket = nullptr;
@@ -444,6 +491,7 @@ bool FNetworkDebuggingAssistant::connectSocket()
 		return false;
 		break;
 	}
+	ui.comboBoxConnectionObject->addItem("All Connections");
 }
 
 bool FNetworkDebuggingAssistant::createUDPSocket(const FInfoConfig *configInfo)
@@ -460,11 +508,13 @@ bool FNetworkDebuggingAssistant::createUDPSocket(const FInfoConfig *configInfo)
 	_socketBase = new FUdpServerAndClient;
 	_socketBase->setIpAddress(configInfo->getIpAddress());
 	_socketBase->setPort(configInfo->getPort());
+	_socketBase->setConfigInfoManager(configInfo);
 	_socketBase->tryToStart();//之前放在  _threadSocket->start(); 之后 出错
 	_threadSocket = new QThread; // 
 	_socketBase->moveToThread(_threadSocket);//
 	_threadSocket->start();
 	connect(_socketBase,&FBaseSocket::sigSocketReceive,this,&FNetworkDebuggingAssistant::onReceiveMessage);
+	connect(_socketBase, &FBaseSocket::sigNewConnection, this, &FNetworkDebuggingAssistant::onNewConnection);
 	connect(this, &FNetworkDebuggingAssistant::toSendMessage, _socketBase, &FBaseSocket::onSocketSend);
 	return true;
 }
@@ -476,6 +526,7 @@ bool FNetworkDebuggingAssistant::disconnectSocket()
 		return false;
 	}
 	destoryResources();
+	ui.comboBoxConnectionObject->clear();
 	return true;
 }
 
@@ -525,7 +576,12 @@ bool FNetworkDebuggingAssistant::createTCPServerSocket(const FInfoConfig *config
 	_threadSocket->start();
 	connect(_socketBase, &FBaseSocket::sigSocketReceive, this, &FNetworkDebuggingAssistant::onReceiveMessage);
 	connect(this, &FNetworkDebuggingAssistant::toSendMessage, _socketBase, &FBaseSocket::onSocketSend);
-
+	connect(_socketBase, &FBaseSocket::sigNewConnection, this, &FNetworkDebuggingAssistant::onNewConnection);
 	return true;
+}
+
+void FNetworkDebuggingAssistant::initSkin()
+{
+
 }
 

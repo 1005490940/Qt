@@ -47,6 +47,15 @@ bool FUdpServerAndClient::stop()
 }
 
 
+QString FUdpServerAndClient::getSocketIpAddress(const QAbstractSocket *socket)
+{
+	if (socket == nullptr)
+	{
+		return QString();
+	}
+	return QString();
+}
+
 /*发送信息*/
 void FUdpServerAndClient::onSocketSend(const QString &msg)
 {
@@ -82,10 +91,15 @@ void FUdpServerAndClient::onSocketStateChanged(QAbstractSocket::SocketState sock
 void FUdpServerAndClient::onSocketReadReady()
 {
 	QByteArray byteArray;
+	QHostAddress senderIpAddress;//获取发送方的IP地址
+	quint16 sendPort = 0u;
 	while (_socketUdp->hasPendingDatagrams())//存在可读数据
 	{
 		byteArray.resize(_socketUdp->pendingDatagramSize());
-		_socketUdp->readDatagram(byteArray.data(), byteArray.size());
+		_socketUdp->readDatagram(byteArray.data(), byteArray.size(),&senderIpAddress,&sendPort);
 	}
-	emit sigSocketReceive(QString(byteArray));//通知界面
+	QString &&clientIP = senderIpAddress.toString();
+	QString &&timeInfo = (_configInfo->getShowRecvTimeFlag()? getCurrentDataTime() : QString());
+	QString &&msg = QString(tr("[%1 %2]%3")).arg(clientIP).arg(timeInfo).arg(QString(byteArray));
+	emit sigSocketReceive(msg);//通知界面
 }
