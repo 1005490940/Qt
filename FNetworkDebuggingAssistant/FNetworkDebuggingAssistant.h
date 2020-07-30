@@ -1,5 +1,4 @@
 #pragma once
-
 #include <QtWidgets/QWidget>
 #include "ui_FNetworkDebuggingAssistant.h"
 #include <QSharedPointer>
@@ -11,6 +10,10 @@
 #include <QValidator>
 #include "FInfoConfig.h"
 #include "FTcpServer.h"
+#include <QFile>
+#include <QTimer>
+#include <QTextStream>
+class QActionGroup;
 class FNetworkDebuggingAssistant : public QWidget
 {
     Q_OBJECT
@@ -87,4 +90,9 @@ private://∆§∑Ùœ‡πÿ
 	QSharedPointer<QMenu>  _menuSkin;
 	QSharedPointer<QAction>  _actionSkin;
 	QAction *_actionCurrentSkin;
+	QActionGroup *_actionGroupSkin;
+
+	QFile _fileReceive;
+	QTextStream _textStreamReceive;
+	QTimer* _timerSend;
 };

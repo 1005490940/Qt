@@ -9,6 +9,7 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QSignalBlocker>
+#include <QActionGroup>
 #include "FQStringUtil.h"
 #include "FUdpServerAndClient.h"
 #include "FTcpClient.h"
@@ -19,6 +20,7 @@ FNetworkDebuggingAssistant::FNetworkDebuggingAssistant(QWidget *parent)
 	, _sizeSend(0)
 	, _sizeRecv(0)
 	,_actionCurrentSkin(nullptr)
+	,_timerSend(nullptr)
 {
 	ui.setupUi(this);
 	initUi();
@@ -26,12 +28,17 @@ FNetworkDebuggingAssistant::FNetworkDebuggingAssistant(QWidget *parent)
 	initNetInfo();
 	_configInfo = QSharedPointer<FInfoConfig>(new FInfoConfig);
 	ui.lineEditPort->setText(QString("%1").arg(_configInfo->getPort()));
+	_timerSend = new QTimer(this);
 	initSkin();
 }
 
 FNetworkDebuggingAssistant::~FNetworkDebuggingAssistant()
 {
 	destoryResources();
+	if (_fileReceive.isOpen())
+	{
+		_fileReceive.close();
+	}
 }
 
 void FNetworkDebuggingAssistant::setXmlPath(const QString &path)
@@ -99,6 +106,7 @@ void FNetworkDebuggingAssistant::saveReceiveArea()
 		saveFile.close();
 	}
 }
+
 
 void FNetworkDebuggingAssistant::setUpConnection()
 {
@@ -264,19 +272,32 @@ void FNetworkDebuggingAssistant::onSendMessageToSocket(bool)
 			outPutWarnningIntof(L"请输入接收方的IP地址或者端口号");
 			return;
 		}
-
 	}
 	_socketBase->setReceiverIpAddress(recvIp);
 	_socketBase->setReceiverPort(recvPort);
 	QString msg = ui.textEdit->toPlainText();
 	_sizeSend += msg.length();
 	updateSendSize(_sizeSend);
+	if (ui.checkBoxClear->isChecked())
+	{
+		ui.textEdit->clear();
+	}
 	emit toSendMessage(msg);
 }
 
 void FNetworkDebuggingAssistant::onReceiveMessage(const QString &msg)
 {
-	ui.textEditOutPut->append(msg);
+	if (ui.checkBoxFile->isChecked())
+	{
+		_textStreamReceive << msg;
+	}
+	else
+	{
+		if (!ui.checkBoxPause->isChecked())
+		{
+			ui.textEditOutPut->append(msg);
+		}
+	}
 	_sizeRecv += msg.length();
 	updateRecvSize(_sizeRecv);
 }
@@ -309,9 +330,17 @@ void FNetworkDebuggingAssistant::onSystemQuit(bool)
 
 void FNetworkDebuggingAssistant::onReceiveToFile(bool)
 {
-	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+	if (!ui.checkBoxFile->isChecked())
+	{
+		if (_fileReceive.isOpen())
+		{
+			_fileReceive.close();
+		}
+		return;
+	}
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Save File"),
 		"",
-		tr("All Files (*.*) Text File(*.txt) Data File(*."));
+		tr("All Files (*.*)"));
 	if (fileName.isEmpty())
 	{
 		QSignalBlocker blocker(ui.checkBoxFile);
@@ -319,23 +348,34 @@ void FNetworkDebuggingAssistant::onReceiveToFile(bool)
 		return;
 	}
 	_configInfo->setSaveFilePath(fileName);
+	_fileReceive.setFileName(fileName);
+	_fileReceive.open(QIODevice::Append | QIODevice::Text);
+	if (!_fileReceive.isOpen())
+	{
+		QSignalBlocker blocker(ui.checkBoxFile);
+		ui.checkBoxFile->setChecked(false);
+		_fileReceive.setFileName(QString());
+		return;
+	}
+	_textStreamReceive.setDevice(&_fileReceive);
 }
 
 void FNetworkDebuggingAssistant::onSkinChange(bool)
 {
-	QAction * skinAction = dynamic_cast<QAction*>(sender());
-	if (skinAction == nullptr)
+	QAction * actionCurSkin = dynamic_cast<QAction*>(sender());
+	if (actionCurSkin == nullptr)
 	{
 		return;
 	}
-	if (_actionCurrentSkin == skinAction)
+	if (_actionCurrentSkin == actionCurSkin)
 	{
 		return;//已经为当前皮肤 不用切换
 	}
 	
-	QString &&skinFilePath = getSkinFilePathBySkinAction(skinAction);
+	QString &&skinFilePath = getSkinFilePathBySkinAction(actionCurSkin);
 	this->setStyleSheet(skinFilePath);
-	_actionCurrentSkin = skinAction;
+	actionCurSkin->setChecked(true);
+	_actionCurrentSkin = actionCurSkin;
 }
 
 QString FNetworkDebuggingAssistant::getSkinFilePathBySkinAction(QAction *skinAction)
@@ -635,6 +675,15 @@ void FNetworkDebuggingAssistant::initSkin()
 	 connect(_acitonSkinGreen.data(), &QAction::triggered, this, &FNetworkDebuggingAssistant::onSkinChange);
 	 connect(_acitonSkinRed.data(), &QAction::triggered, this, &FNetworkDebuggingAssistant::onSkinChange);
 	 this->setStyleSheet(getSkinFilePathBySkinAction(_acitonSkinBlack.data()));//初始化为黑色皮肤
+	 _actionCurrentSkin = _acitonSkinBlack.data();
+	 _acitonSkinBlack->setCheckable(true);
+	 _acitonSkinGreen->setCheckable(true);
+	 _acitonSkinRed->setCheckable(true);
+	 _actionGroupSkin = new QActionGroup(this);
+	 _actionGroupSkin->addAction(_acitonSkinBlack.data());
+	 _actionGroupSkin->addAction(_acitonSkinGreen.data());
+	 _actionGroupSkin->addAction(_acitonSkinRed.data());
+	 _acitonSkinBlack->setChecked(true);
 	 _actionCurrentSkin = _acitonSkinBlack.data();
 }
 
