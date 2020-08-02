@@ -13,7 +13,7 @@ public:
 		FileMdoe,
 	};
 	FBaseSocket(QObject *parent = Q_NULLPTR);
-	~FBaseSocket();
+	virtual ~FBaseSocket();//◊”¿‡ Õ∑≈
 	void setPort(unsigned int port);
 	unsigned int getPort()const;
 	void setIpAddress(const QString &ip);

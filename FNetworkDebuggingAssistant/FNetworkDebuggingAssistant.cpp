@@ -21,14 +21,15 @@ FNetworkDebuggingAssistant::FNetworkDebuggingAssistant(QWidget *parent)
 	, _sizeRecv(0)
 	,_actionCurrentSkin(nullptr)
 	,_timerSend(nullptr)
+	, _socketBase(nullptr)
 {
 	ui.setupUi(this);
 	initUi();
+	_timerSend = new QTimer(this);
 	setUpConnection();
 	initNetInfo();
 	_configInfo = QSharedPointer<FInfoConfig>(new FInfoConfig);
 	ui.lineEditPort->setText(QString("%1").arg(_configInfo->getPort()));
-	_timerSend = new QTimer(this);
 	initSkin();
 }
 
@@ -141,16 +142,15 @@ void FNetworkDebuggingAssistant::setUpConnection()
 	{
 		_configInfo->setSendBy0xFlag(ui.checkBoxSend0x->isChecked());
 	});
-	connect(ui.checkBoxLoop, &QCheckBox::clicked, this, [=](bool)
-	{
-		_configInfo->setSendLoopFlag(ui.checkBoxLoop->isChecked());
-	});
+	connect(ui.checkBoxLoop, &QCheckBox::clicked, this, &FNetworkDebuggingAssistant::onLoopSend);
 	connect(ui.pushButtonSave, &QPushButton::clicked, this, &FNetworkDebuggingAssistant::onSaveRecvDataAsFile);
 	connect(ui.pushButtonClearJOutPut, &QPushButton::clicked, this, &FNetworkDebuggingAssistant::onClearAllRecvData);
 	connect(ui.pushButtonLoadFile, &QPushButton::clicked, this, &FNetworkDebuggingAssistant::onLoadingFile);
 	connect(ui.pushButtonClearInput, &QPushButton::clicked, this, &FNetworkDebuggingAssistant::onClearInputArea);
 	connect(ui.pushButtonResetCount, &QPushButton::clicked, this, &FNetworkDebuggingAssistant::onResetCount);
 	connect(ui.pushButtonSend, &QPushButton::clicked, this, &FNetworkDebuggingAssistant::onSendMessageToSocket);
+	//connect(_timerSend, SIGNAL(timeout()), this, SLOT(onTimerOut));
+	connect(_timerSend, &QTimer::timeout, this, &FNetworkDebuggingAssistant::onTimerOut);
 }
 
 void FNetworkDebuggingAssistant::initUi()
@@ -378,6 +378,27 @@ void FNetworkDebuggingAssistant::onSkinChange(bool)
 	_actionCurrentSkin = actionCurSkin;
 }
 
+void FNetworkDebuggingAssistant::onLoopSend(bool)
+{
+	ui.lineEditSpacer->setEnabled(!ui.checkBoxLoop->isChecked());
+	if (_isBulidSocket)
+	{
+        if (_timerSend->isActive())
+        {
+			_timerSend->stop();
+        }
+		else
+		{
+			_timerSend->start(ui.lineEditSpacer->text().toInt());
+		}
+	}
+}
+
+void FNetworkDebuggingAssistant::onTimerOut()
+{
+	onSendMessageToSocket(false);
+}
+
 QString FNetworkDebuggingAssistant::getSkinFilePathBySkinAction(QAction *skinAction)
 {
 	auto iter = _skinAction2SkinFileName.find(skinAction);
@@ -545,6 +566,11 @@ void FNetworkDebuggingAssistant::updateRecvSize(unsigned long long recvSize)
 bool FNetworkDebuggingAssistant::connectSocket()
 {
 	setUpConfigInfoByUi();
+	ui.comboBoxConnectionObject->addItem("All Connections");
+	if (ui.checkBoxLoop->isChecked())
+	{
+		_timerSend->start(ui.lineEditSpacer->text().toInt());
+	}
 	auto type = _configInfo->getProtocolType();
 	switch (type)
 	{
@@ -561,7 +587,7 @@ bool FNetworkDebuggingAssistant::connectSocket()
 		return false;
 		break;
 	}
-	ui.comboBoxConnectionObject->addItem("All Connections");
+
 }
 
 bool FNetworkDebuggingAssistant::createUDPSocket(const FInfoConfig *configInfo)
@@ -597,6 +623,10 @@ bool FNetworkDebuggingAssistant::disconnectSocket()
 	}
 	destoryResources();
 	ui.comboBoxConnectionObject->clear();
+    if (_timerSend->isActive())
+    {
+		_timerSend->stop();
+    }
 	return true;
 }
 

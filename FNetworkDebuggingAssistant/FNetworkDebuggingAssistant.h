@@ -52,6 +52,8 @@ protected slots ://UI ²Ûº¯Êý
 	void onSystemQuit(bool);
 	void onReceiveToFile(bool);
 	void onSkinChange(bool);
+	void onLoopSend(bool);
+	void onTimerOut();
 private:
 	QString getSkinFilePathBySkinAction(QAction *skinAction);
 	void outPutWarnningIntof(const std::wstring &msg);
